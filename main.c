@@ -1,127 +1,51 @@
-/*
+//this example code shows how to put some text in nametable
+//it assumes that you have ASCII-encoded font in the CHR tiles $00-$3f
 
-	Hello, NES!
-
-	writes "Hello, NES!" to the screen
-
+#include "neslib.h"
 
 
-	written by WolfCoder (2010)
+//this macro is used remove need of calculation of the nametable address in runtime
 
-*/
-
-
-
-/* Includes */
-
-#include <nes.h>
+#define NTADR(x,y) ((0x2000|((y)<<5)|x))
 
 
+//put a string into the nametable
 
-/* Writes the string to the screen */
-
-/* Note how the NES hardware itself automatically moves the position we write to the screen */
-
-void write_string(char *str)
-
+void put_str(unsigned int adr,const char *str)
 {
+	vram_adr(adr);
 
-	/* Position the cursor */
-
-	/* We only need to do this once */
-
-	/* This is actually 2 cells down since the first 8 pixels from the top of the screen is hidden */
-
-	*((unsigned char*)0x2006) = 0x20;
-
-	*((unsigned char*)0x2006) = 0x41;
-
-	/* Write the string */
-
-	while(*str)
-
+	while(1)
 	{
-
-		/* Write a letter */
-
-		/* The compiler put a set of graphics that match ASCII */
-
-		*((unsigned char*)0x2007) = *str;
-
-		/* Advance pointer that reads from the string */
-
-		str++;
-
+		if(!*str) break;
+		vram_put((*str++)-0x20);//-0x20 because ASCII code 0x20 is placed in tile 0 of the CHR
 	}
-
 }
 
 
 
-/* Program entry */
-
-int main()
-
+void main(void)
 {
+	//rendering is disabled at the startup, and palette is all black
 
-	/* We have to wait for VBLANK or we can't even use the PPU */
+	pal_col(1,0x30);//set while color
 
-	waitvblank(); /* This is found in nes.h */
+	//you can't put data into vram through vram_put while rendering is enabled
+	//so you have to disable rendering to put things like text or a level map
+	//into the nametable
 
+	//there is a way to update small number of nametable tiles while rendering
+	//is enabled, using set_vram_update and an update list
 
+	put_str(NTADR(2,2),"HELLO, WORLD!");
+	put_str(NTADR(2,4),"THIS CODE PRINTS SOME TEXT");
+	put_str(NTADR(2,5),"USING ASCII-ENCODED CHARACTER");
+	put_str(NTADR(2,6),"SET WITH CAPITAL LETTERS ONLY");
+	put_str(NTADR(2,8),"TO USE CHR MORE EFFICIENTLY");
+	put_str(NTADR(2,9),"YOU'D NEED A CUSTOM ENCODING");
+	put_str(NTADR(2,10),"AND A CONVERSION TABLE");
 
-	/* This is a really strange way to set colors, don't you think? */
+	ppu_on_all();//enable rendering
 
-	/* First, we need to set the background color */
-
-	*((unsigned char*)0x2006) = 0x3F;
-
-	*((unsigned char*)0x2006) = 0x00;
-
-	*((unsigned char*)0x2007) = 1;
-
-	/* Then, we need to set the text color */
-
-	*((unsigned char*)0x2006) = 0x3F;
-
-	*((unsigned char*)0x2006) = 0x03;
-
-	*((unsigned char*)0x2007) = 0x30;
-
-
-
-	/* We must write our message to the screen */
-
-	write_string("Hello, NES!");
-
-
-
-	/* Set the screen position */
-
-	/* First value written sets the X offset and the second is the Y offset */
-
-	*((unsigned char*)0x2005) = 0x00;
-
-	*((unsigned char*)0x2005) = 0x00;
-
-
-
-	/* Enable the screen */
-
-	/* By default, the screen and sprites were off */
-
-	*((unsigned char*)0x2001) = 8;
-
-
-
-	/* Wait */
-
-	/* The compiler seems to loop the main function over and over, so we need to hold it here */
-
-	while(1);
-
-	
-
-	return 0;
-
+	while(1);//do nothing, infinite loop
 }
